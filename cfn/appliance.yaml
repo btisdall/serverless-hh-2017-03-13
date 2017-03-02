@@ -20,6 +20,10 @@ Parameters:
     Description: Availability zone
     Type: String
     Default: eu-west-1a
+  ServiceUrl:
+    Description: Registration API URL
+    Type: String
+    Default: https://foo.bar.baz/v1
 
 Resources:
 
@@ -94,12 +98,14 @@ Resources:
       SecurityGroups:
       - !Ref SecurityGroup
       UserData:
-        Fn::Base64: |
+        Fn::Base64: !Sub |
           #!/usr/bin/env bash
           exec >/var/log/bootstrap.log 2>&1
           set -ex
+          export DEBIAN_FRONTEND=noninteractive
           apt-get update
-          apt-get -y install nginx
+          apt-get -y install nginx git
+          sed -i 's!%%MYVAL%%!${ServiceUrl}!' /tmp/myfile
 
   AutoScalingGroup:
     Type: AWS::AutoScaling::AutoScalingGroup
