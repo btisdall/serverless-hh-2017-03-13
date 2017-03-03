@@ -1,0 +1,171 @@
+---
+AWSTemplateFormatVersion: '2010-09-09'
+
+Description: Enterprisey Security Appliance registration service
+
+Resources:
+
+  RegSrvLambda:
+    Type: "AWS::Lambda::Function"
+    Properties:
+      Description: Appliance registration service
+      FunctionName: SecApplianceReg
+      Handler: index.handler
+      Role: !GetAtt LambdaExecutionRole.Arn
+      Runtime: nodejs4.3
+      Timeout: 3
+      Code:
+        ZipFile: |
+          'use strict';
+
+          console.log('Loading function');
+
+          exports.handler = (event, context, callback) => {
+
+            callback(null, {
+              "statusCode": 200,
+              "headers": {"myname":"bentis"},
+              "body": JSON.stringify({ "event": event, "context": context })
+            });
+          };
+
+  LambdaExecutionRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+        - Effect: Allow
+          Principal:
+            Service:
+            - lambda.amazonaws.com
+          Action:
+          - sts:AssumeRole
+      Path: "/"
+      Policies:
+      - PolicyName: root
+        PolicyDocument:
+          Version: "2012-10-17"
+          Statement:
+          - Effect: Allow
+            Action:
+            - logs:*
+            Resource: arn:aws:logs:*:*:*
+  RestApiRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+        - Effect: Allow
+          Principal:
+            Service:
+            - apigateway.amazonaws.com
+          Action:
+          - sts:AssumeRole
+      Path: "/"
+      Policies:
+      - PolicyName: root
+        PolicyDocument:
+          Version: "2012-10-17"
+          Statement:
+          - Effect: Allow
+            Action:
+            - lambda:InvokeFunction
+            Resource: !GetAtt RegSrvLambda.Arn
+
+  RestApi:
+    Type: AWS::ApiGateway::RestApi
+    Properties:
+      Name: RegSrvApi
+      Body:
+        swagger: "2.0"
+        info:
+          version: "2016-07-07T11:29:55Z"
+          title: "RegSrv"
+        basePath: "/prod"
+        schemes:
+        - https
+        paths:
+          "/":
+            post:
+              consumes:
+              - application/json
+              produces:
+              - application/json
+              responses:
+                "200":
+                  description: 200 response
+                  schema:
+                    "$ref": "#/definitions/Empty"
+                  headers:
+                    Access-Control-Allow-Origin:
+                      type: string
+              x-amazon-apigateway-integration:
+                credentials: !GetAtt RestApiRole.Arn
+                responses:
+                  default:
+                    statusCode: "200"
+                    responseParameters:
+                      method.response.header.Access-Control-Allow-Origin: "'*'"
+                uri:
+                  Fn::Join:
+                  - ""
+                  - - "arn:aws:apigateway:"
+                    - Ref: AWS::Region
+                    - ":lambda:path/2015-03-31/functions/"
+                    - !GetAtt RegSrvLambda.Arn
+                    - "/invocations"
+                passthroughBehavior: when_no_templates
+                httpMethod: POST
+                type: aws_proxy
+            options:
+              consumes:
+              - application/json
+              produces:
+              - application/json
+              responses:
+                "200":
+                  description: 200 response
+                  schema:
+                    "$ref": "#/definitions/Empty"
+                  headers:
+                    Access-Control-Allow-Origin:
+                      type: string
+                    Access-Control-Allow-Methods:
+                      type: string
+                    Access-Control-Allow-Headers:
+                      type: string
+              x-amazon-apigateway-integration:
+                responses:
+                  default:
+                    statusCode: "200"
+                    responseParameters:
+                      method.response.header.Access-Control-Allow-Methods: "'POST,OPTIONS'"
+                      method.response.header.Access-Control-Allow-Headers: "'Content-Type,X-Amz-Date,Authorization,X-Api-Key,X-Amz-Security-Token'"
+                      method.response.header.Access-Control-Allow-Origin: "'*'"
+                requestTemplates:
+                  application/json: '{"statusCode": 200}'
+                passthroughBehavior: when_no_match
+                type: mock
+        definitions:
+          Empty:
+            type: object
+      Description: Handles submitted contact form
+      FailOnWarnings: true
+  StageApi:
+    Type: AWS::ApiGateway::Stage
+    Properties:
+      DeploymentId:
+        Ref: DeployApi
+      Description: RegSrv stage
+      RestApiId:
+        Ref: RestApi
+      StageName: prod
+  DeployApi:
+    Type: AWS::ApiGateway::Deployment
+    Properties:
+      Description: RegSrv Deployment
+      RestApiId:
+        Ref: RestApi
+      StageName: DummyStage
