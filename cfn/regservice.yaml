@@ -138,7 +138,7 @@ Resources:
 
             options:
               consumes:
-              - application/x-www-form-urlencoded
+              - application/json
               produces:
               - application/json
               responses:
