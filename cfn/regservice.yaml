@@ -17,11 +17,8 @@ Resources:
       Code:
         ZipFile: |
           'use strict';
-
           console.log('Loading function');
-
           exports.handler = (event, context, callback) => {
-
             callback(null, {
               "statusCode": 200,
               "headers": {"myname":"bentis"},
@@ -87,7 +84,7 @@ Resources:
         schemes:
         - https
         paths:
-          "/":
+          "/claim":
             post:
               consumes:
               - application/json
