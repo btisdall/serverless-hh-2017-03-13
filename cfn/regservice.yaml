@@ -6,7 +6,7 @@ Description: Enterprisey Security Appliance registration service
 Resources:
 
   RegSrvLambda:
-    Type: "AWS::Lambda::Function"
+    Type: AWS::Lambda::Function
     Properties:
       Description: Appliance registration service
       FunctionName: SecApplianceReg
@@ -18,13 +18,47 @@ Resources:
         ZipFile: |
           'use strict';
           console.log('Loading function');
+          const AWS = require('aws-sdk');
+          const ddClient = new AWS.DynamoDB.DocumentClient({
+            endpoint:'https://dynamodb.eu-west-1.amazonaws.com',
+            region:'eu-west-1'
+          });
+
           exports.handler = (event, context, callback) => {
+
+            const done = (err, res) => callback(null, {
+                statusCode: err ? '400' : '200',
+                body: err ? err.message : JSON.stringify(res),
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+            });
+
             callback(null, {
-              "statusCode": 200,
-              "headers": {"myname":"bentis"},
-              "body": JSON.stringify({ "event": event, "context": context })
+              statusCode: 200,
+              headers: {
+                'Content-Type': 'application/json',
+              },
+              body: JSON.stringify({context: context, event: event})
             });
           };
+
+  InstancesTable:
+    Type: AWS::DynamoDB::Table
+    Properties:
+      AttributeDefinitions:
+        -
+          AttributeName: instance_id
+          AttributeType: S
+      KeySchema:
+        -
+          AttributeName: instance_id
+          KeyType: HASH
+      StreamSpecification:
+        StreamViewType: KEYS_ONLY
+      ProvisionedThroughput:
+        ReadCapacityUnits: 5
+        WriteCapacityUnits: 10
 
   LambdaExecutionRole:
     Type: AWS::IAM::Role
@@ -70,6 +104,16 @@ Resources:
             Action:
             - lambda:InvokeFunction
             Resource: !GetAtt RegSrvLambda.Arn
+          - Effect: Allow
+            Action:
+            - dynamodb:Scan
+            - dynamodb:PutItem
+            - dynamodb:GetItem
+            - dynamodb:DeleteItem
+            - dynamodb:Query
+            - dynamodb:UpdateItem
+            - lambda:InvokeFunction
+            Resource: !GetAtt InstancesTable.StreamArn
 
   RestApi:
     Type: AWS::ApiGateway::RestApi
