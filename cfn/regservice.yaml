@@ -14,6 +14,9 @@ Resources:
       Role: !GetAtt LambdaExecutionRole.Arn
       Runtime: nodejs4.3
       Timeout: 3
+      Environment:
+        Variables:
+          TABLE_NAME: !Ref InstancesTable
       Code:
         ZipFile: |
           'use strict';
@@ -34,13 +37,13 @@ Resources:
                 },
             });
 
-            callback(null, {
-              statusCode: 200,
-              headers: {
-                'Content-Type': 'application/json',
-              },
-              body: JSON.stringify({context: context, event: event})
-            });
+            var params = {
+              TableName: process.env.TABLE_NAME,
+              Item: event.data
+            };
+
+            ddClient.put(params, done);
+
           };
 
   InstancesTable:
@@ -54,8 +57,6 @@ Resources:
         -
           AttributeName: instance_id
           KeyType: HASH
-      StreamSpecification:
-        StreamViewType: KEYS_ONLY
       ProvisionedThroughput:
         ReadCapacityUnits: 5
         WriteCapacityUnits: 10
@@ -82,6 +83,25 @@ Resources:
             Action:
             - logs:*
             Resource: arn:aws:logs:*:*:*
+          - Effect: Allow
+            Action:
+            - dynamodb:Scan
+            - dynamodb:PutItem
+            - dynamodb:GetItem
+            - dynamodb:DeleteItem
+            - dynamodb:Query
+            - dynamodb:UpdateItem
+            - lambda:InvokeFunction
+            Resource:
+              Fn::Join:
+              - ""
+              - - "arn:aws:dynamodb:"
+                - !Ref AWS::Region
+                - ":"
+                - !Ref AWS::AccountId
+                - ":table/"
+                - !Ref InstancesTable
+
   RestApiRole:
     Type: AWS::IAM::Role
     Properties:
@@ -104,16 +124,6 @@ Resources:
             Action:
             - lambda:InvokeFunction
             Resource: !GetAtt RegSrvLambda.Arn
-          - Effect: Allow
-            Action:
-            - dynamodb:Scan
-            - dynamodb:PutItem
-            - dynamodb:GetItem
-            - dynamodb:DeleteItem
-            - dynamodb:Query
-            - dynamodb:UpdateItem
-            - lambda:InvokeFunction
-            Resource: !GetAtt InstancesTable.StreamArn
 
   RestApi:
     Type: AWS::ApiGateway::RestApi
