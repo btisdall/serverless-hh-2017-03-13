@@ -3,10 +3,13 @@
   <head>
   </head>
   <body>
-    <form action="%%POST_URL%%" method="post">
+    <form action="%%CLAIM_URL%%" method="post">
       <div>
         <label for="key">Your unique registration key</label>
-        <input name="key" id="key">
+        <input name="Key" id="key">
+      </div>
+      <div>
+        <input type="hidden" name="instance_id" value="%%INSTANCE_ID%%">
       </div>
       <div>
         <button>send</button>

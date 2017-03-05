@@ -7,15 +7,15 @@ Parameters:
   VpcId:
     Description: VPC ID
     Type: String
-    Default: vpc-604baf04
+    Default: vpc-65a71b00
   IgwId:
     Description: Internet gw
     Type: String
-    Default: igw-58afe33d
+    Default: igw-05a27160
   KeyName:
     Description: SSH key
     Type: String
-    Default: bentis
+    Default: bentis_sandbox
   Az:
     Description: Availability zone
     Type: String
@@ -33,14 +33,14 @@ Resources:
       GroupDescription: Enterprisey Security Appliance
       VpcId: !Ref VpcId
       SecurityGroupIngress:
-      - CidrIp: 31.19.117.202/32
+      - CidrIp: 31.19.119.178/32
         IpProtocol: tcp
         FromPort: 22
         ToPort: 22
-      - CidrIp: 0.0.0.0/0
+      - CidrIp: 31.19.119.178/32
         IpProtocol: tcp
-        FromPort: 9999
-        ToPort: 9999
+        FromPort: 80
+        ToPort: 80
       Tags:
       - Key: Name
         Value: alertlogic_threat_manager
@@ -105,7 +105,10 @@ Resources:
           export DEBIAN_FRONTEND=noninteractive
           apt-get update
           apt-get -y install nginx git
-          sed -i 's!%%MYVAL%%!${ServiceUrl}!' /tmp/myfile
+          git -C /tmp clone https://github.com/btisdall/serverless-hh-2017-03-13.git
+          cp /tmp/serverless-hh-2017-03-13/nginx/html/* /usr/share/nginx/html/
+          sed -i "s!%%CLAIM_URL%%!${ServiceUrl}!" /usr/share/nginx/html/index.html
+          sed -i "s!%%INSTANCE_ID%%!$(ec2metadata --instance-id)!" /usr/share/nginx/html/index.html
 
   AutoScalingGroup:
     Type: AWS::AutoScaling::AutoScalingGroup
