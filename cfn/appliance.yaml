@@ -23,7 +23,6 @@ Parameters:
   ServiceUrl:
     Description: Registration API URL
     Type: String
-    Default: https://foo.bar.baz/v1
 
 Resources:
 
@@ -106,9 +105,9 @@ Resources:
           apt-get update
           apt-get -y install nginx git
           git -C /tmp clone https://github.com/btisdall/serverless-hh-2017-03-13.git
-          cp /tmp/serverless-hh-2017-03-13/nginx/html/* /usr/share/nginx/html/
-          sed -i "s!%%CLAIM_URL%%!${ServiceUrl}!" /usr/share/nginx/html/index.html
-          sed -i "s!%%INSTANCE_ID%%!$(ec2metadata --instance-id)!" /usr/share/nginx/html/index.html
+          cp /tmp/serverless-hh-2017-03-13/nginx/html/* /var/www/html/
+          sed -i "s!%%CLAIM_URL%%!${ServiceUrl}!" /var/www/html/index.html
+          sed -i "s!%%INSTANCE_ID%%!$(ec2metadata --instance-id)!" /var/www/html/index.html
 
   AutoScalingGroup:
     Type: AWS::AutoScaling::AutoScalingGroup
