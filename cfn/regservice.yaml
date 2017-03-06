@@ -17,14 +17,19 @@ Resources:
       Environment:
         Variables:
           TABLE_NAME: !Ref InstancesTable
+          DYNAMODB_ENDPOINT:
+            Fn::Join:
+            - ""
+            - - "https://dynamodb."
+              - !Ref AWS::Region
+              - ".amazonaws.com"
       Code:
         ZipFile: |
           'use strict';
           console.log('Loading function');
           const AWS = require('aws-sdk');
           const ddClient = new AWS.DynamoDB.DocumentClient({
-            endpoint:'https://dynamodb.eu-west-1.amazonaws.com',
-            region:'eu-west-1'
+            endpoint: process.env.DYNAMODB_ENDPOINT,
           });
 
           exports.handler = (event, context, callback) => {
