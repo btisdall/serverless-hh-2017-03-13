@@ -4,6 +4,10 @@ AWSTemplateFormatVersion: '2010-09-09'
 Description: Enterprisey Security Appliance
 
 Parameters:
+  Environment:
+    Description: Environment
+    Type: String
+    Default: test
   VpcId:
     Description: VPC ID
     Type: String
@@ -109,16 +113,55 @@ Resources:
           sed -i "s!%%CLAIM_URL%%!${ServiceUrl}!" /var/www/html/index.html
           sed -i "s!%%INSTANCE_ID%%!$(ec2metadata --instance-id)!" /var/www/html/index.html
 
+  AsgSnsTopic:
+    Type: AWS::SNS::Topic
+    Properties:
+      Subscription:
+      - Endpoint: !GetAtt AsgSqsQueue.Arn
+        Protocol: sqs
+      - Endpoint: ben@tisdall.de
+        Protocol: email
+
+  AsgSqsQueue:
+    Type: AWS::SQS::Queue
+    Properties:
+      DelaySeconds: 0
+
+  AsgSqsPolicy:
+    Type: AWS::SQS::QueuePolicy
+    Properties:
+      PolicyDocument:
+        Version: '2012-10-17'
+        Id: Send message to SQS
+        Statement:
+        - Effect: Allow
+          Principal: "*"
+          Action:
+          - sqs:SendMessage
+          Resource: "*"
+          Condition:
+            ArnEquals:
+              aws:SourceArn: !Ref AsgSnsTopic
+      Queues:
+      - !Ref AsgSqsQueue
+
   AutoScalingGroup:
     Type: AWS::AutoScaling::AutoScalingGroup
     Properties:
       LaunchConfigurationName: !Ref LaunchConfig
       MinSize: 1
       MaxSize: 1
+      NotificationConfigurations:
+      - TopicARN: !Ref AsgSnsTopic
+        NotificationTypes:
+        - autoscaling:EC2_INSTANCE_LAUNCH
       VPCZoneIdentifier:
       - !Ref Subnet
       Tags:
       - Key: Name
+        Value: alertlogic_threat_manager
+        PropagateAtLaunch: true
+      - Key: Role
         Value: alertlogic_threat_manager
         PropagateAtLaunch: true
       - Key: Department

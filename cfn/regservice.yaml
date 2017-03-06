@@ -3,8 +3,13 @@ AWSTemplateFormatVersion: '2010-09-09'
 
 Description: Enterprisey Security Appliance registration service
 
-Resources:
+Parameters:
+  Environment:
+    Description: Environment
+    Type: String
+    Default: test
 
+Resources:
   RegSrvLambda:
     Type: AWS::Lambda::Function
     Properties:
@@ -245,3 +250,8 @@ Resources:
       RestApiId:
         Ref: RestApi
       StageName: DummyStage
+
+Outputs:
+  ClaimApiId:
+    Description: Claim API ID
+    Value: !Ref RestApi
