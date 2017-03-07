@@ -62,6 +62,123 @@ Resources:
       Queues:
       - !Ref AsgSqsQueue
 
+  WorkerLambda:
+    Type: AWS::Lambda::Function
+    Properties:
+      Code:
+        ZipFile: |
+          'use strict';
+          console.log('Loading function');
+
+      Handler: index.handler
+      MemorySize: 128
+      Role: !GetAtt WorkerLambdaRole.Arn
+      Runtime: nodejs4.3
+      Timeout: 10
+
+  ConsumerLambda:
+    Type: AWS::Lambda::Function
+    Properties:
+      Environment:
+        Variables:
+          QUEUE_URL: !Ref AsgSqsQueue
+          WORKER_LAMBDA_NAME: !Ref WorkerLambda
+      Handler: index.handler
+      MemorySize: 128
+      Role: !GetAtt ConsumerLambdaRole.Arn
+      Runtime: nodejs4.3
+      Timeout: 10
+      Code:
+        S3Bucket: photobox-bentis-deploy-test
+        S3Key: lambda/consumer.js.zip
+
+
+  ScheduleRuleForConsumerLambda:
+    Type: AWS::Events::Rule
+    Properties:
+      Description: Schedule Rule for Consumer Lambda
+      ScheduleExpression: rate(1 minute)
+      State: ENABLED
+      Targets:
+      - Arn: !GetAtt ConsumerLambda.Arn
+        Id: DailyScheduleTarget
+
+  PermissionToInvokeConsumerLambda:
+    Type: AWS::Lambda::Permission
+    Properties:
+      FunctionName:
+        Ref: ConsumerLambda
+      Action: lambda:InvokeFunction
+      Principal: events.amazonaws.com
+      SourceArn: !GetAtt ScheduleRuleForConsumerLambda.Arn
+
+  ConsumerLambdaRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+        - Effect: Allow
+          Principal:
+            Service: lambda.amazonaws.com
+          Action:
+          - sts:AssumeRole
+      Path: "/"
+      Policies:
+      - PolicyName: logs
+        PolicyDocument:
+          Statement:
+          - Effect: Allow
+            Action:
+            - logs:CreateLogGroup
+            - logs:CreateLogStream
+            - logs:PutLogEvents
+            Resource: arn:aws:logs:*:*:*
+      - PolicyName: sqs
+        PolicyDocument:
+          Statement:
+          - Effect: Allow
+            Action:
+            - sqs:ReceiveMessage
+            Resource: !GetAtt AsgSqsQueue.Arn
+      - PolicyName: invoke_worker_lambda
+        PolicyDocument:
+          Statement:
+          - Effect: Allow
+            Action:
+            - lambda:InvokeFunction
+            Resource: !GetAtt WorkerLambda.Arn
+      - PolicyName: bucket
+        PolicyDocument:
+          Statement:
+          - Effect: Allow
+            Action:
+            - s3:GetObject
+            Resource: arn:aws:s3:::photobox-bentis-deploy-test/*
+
+  WorkerLambdaRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+        - Effect: Allow
+          Principal:
+            Service: lambda.amazonaws.com
+          Action:
+          - sts:AssumeRole
+      Path: "/"
+      Policies:
+      - PolicyName: logs
+        PolicyDocument:
+          Statement:
+          - Effect: Allow
+            Action:
+            - logs:CreateLogGroup
+            - logs:CreateLogStream
+            - logs:PutLogEvents
+            Resource: arn:aws:logs:*:*:*
+
   LaunchConfig:
     Type: AWS::AutoScaling::LaunchConfiguration
     Properties:
