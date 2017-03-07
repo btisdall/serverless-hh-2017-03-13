@@ -30,6 +30,86 @@ Parameters:
 
 Resources:
 
+  AsgSnsTopic:
+    Type: AWS::SNS::Topic
+    Properties:
+      Subscription:
+      - Endpoint: !GetAtt AsgSqsQueue.Arn
+        Protocol: sqs
+      - Endpoint: ben@tisdall.de
+        Protocol: email
+
+  AsgSqsQueue:
+    Type: AWS::SQS::Queue
+    Properties:
+      DelaySeconds: 0
+
+  AsgSqsPolicy:
+    Type: AWS::SQS::QueuePolicy
+    Properties:
+      PolicyDocument:
+        Version: '2012-10-17'
+        Id: Send message to SQS
+        Statement:
+        - Effect: Allow
+          Principal: "*"
+          Action:
+          - sqs:SendMessage
+          Resource: "*"
+          Condition:
+            ArnEquals:
+              aws:SourceArn: !Ref AsgSnsTopic
+      Queues:
+      - !Ref AsgSqsQueue
+
+  LaunchConfig:
+    Type: AWS::AutoScaling::LaunchConfiguration
+    Properties:
+      ImageId: ami-81f8d4e7
+      InstanceType: t2.micro
+      AssociatePublicIpAddress: true
+      KeyName: !Ref KeyName
+      SecurityGroups:
+      - !Ref SecurityGroup
+      UserData:
+        Fn::Base64: !Sub |
+          #!/usr/bin/env bash
+          exec >/var/log/bootstrap.log 2>&1
+          set -ex
+          export DEBIAN_FRONTEND=noninteractive
+          apt-get update
+          apt-get -y install nginx git
+          git -C /tmp clone https://github.com/btisdall/serverless-hh-2017-03-13.git
+          cp /tmp/serverless-hh-2017-03-13/nginx/html/* /var/www/html/
+          sed -i "s!%%CLAIM_URL%%!${ServiceUrl}!" /var/www/html/index.html
+          sed -i "s!%%INSTANCE_ID%%!$(ec2metadata --instance-id)!" /var/www/html/index.html
+
+  AutoScalingGroup:
+    Type: AWS::AutoScaling::AutoScalingGroup
+    Properties:
+      LaunchConfigurationName: !Ref LaunchConfig
+      MinSize: 1
+      MaxSize: 1
+      NotificationConfigurations:
+      - TopicARN: !Ref AsgSnsTopic
+        NotificationTypes:
+        - autoscaling:EC2_INSTANCE_LAUNCH
+      VPCZoneIdentifier:
+      - !Ref Subnet
+      Tags:
+      - Key: Name
+        Value: alertlogic_threat_manager
+        PropagateAtLaunch: true
+      - Key: Role
+        Value: alertlogic_threat_manager
+        PropagateAtLaunch: true
+      - Key: Department
+        Value: web
+        PropagateAtLaunch: true
+      - Key: Project
+        Value: babel
+        PropagateAtLaunch: true
+
   SecurityGroup:
     Type: AWS::EC2::SecurityGroup
     Properties:
@@ -90,83 +170,3 @@ Resources:
     Properties:
       SubnetId: !Ref Subnet
       RouteTableId: !Ref RouteTable
-
-  LaunchConfig:
-    Type: AWS::AutoScaling::LaunchConfiguration
-    Properties:
-      ImageId: ami-81f8d4e7
-      InstanceType: t2.micro
-      AssociatePublicIpAddress: true
-      KeyName: !Ref KeyName
-      SecurityGroups:
-      - !Ref SecurityGroup
-      UserData:
-        Fn::Base64: !Sub |
-          #!/usr/bin/env bash
-          exec >/var/log/bootstrap.log 2>&1
-          set -ex
-          export DEBIAN_FRONTEND=noninteractive
-          apt-get update
-          apt-get -y install nginx git
-          git -C /tmp clone https://github.com/btisdall/serverless-hh-2017-03-13.git
-          cp /tmp/serverless-hh-2017-03-13/nginx/html/* /var/www/html/
-          sed -i "s!%%CLAIM_URL%%!${ServiceUrl}!" /var/www/html/index.html
-          sed -i "s!%%INSTANCE_ID%%!$(ec2metadata --instance-id)!" /var/www/html/index.html
-
-  AsgSnsTopic:
-    Type: AWS::SNS::Topic
-    Properties:
-      Subscription:
-      - Endpoint: !GetAtt AsgSqsQueue.Arn
-        Protocol: sqs
-      - Endpoint: ben@tisdall.de
-        Protocol: email
-
-  AsgSqsQueue:
-    Type: AWS::SQS::Queue
-    Properties:
-      DelaySeconds: 0
-
-  AsgSqsPolicy:
-    Type: AWS::SQS::QueuePolicy
-    Properties:
-      PolicyDocument:
-        Version: '2012-10-17'
-        Id: Send message to SQS
-        Statement:
-        - Effect: Allow
-          Principal: "*"
-          Action:
-          - sqs:SendMessage
-          Resource: "*"
-          Condition:
-            ArnEquals:
-              aws:SourceArn: !Ref AsgSnsTopic
-      Queues:
-      - !Ref AsgSqsQueue
-
-  AutoScalingGroup:
-    Type: AWS::AutoScaling::AutoScalingGroup
-    Properties:
-      LaunchConfigurationName: !Ref LaunchConfig
-      MinSize: 1
-      MaxSize: 1
-      NotificationConfigurations:
-      - TopicARN: !Ref AsgSnsTopic
-        NotificationTypes:
-        - autoscaling:EC2_INSTANCE_LAUNCH
-      VPCZoneIdentifier:
-      - !Ref Subnet
-      Tags:
-      - Key: Name
-        Value: alertlogic_threat_manager
-        PropagateAtLaunch: true
-      - Key: Role
-        Value: alertlogic_threat_manager
-        PropagateAtLaunch: true
-      - Key: Department
-        Value: web
-        PropagateAtLaunch: true
-      - Key: Project
-        Value: babel
-        PropagateAtLaunch: true
