@@ -68,6 +68,7 @@ Resources:
       Environment:
         Variables:
           CLAIM_URL: !Ref ServiceUrl
+          QUEUE_URL: !Ref AsgSqsQueue
       Handler: index.handler
       MemorySize: 128
       Role: !GetAtt WorkerLambdaRole.Arn
@@ -170,6 +171,13 @@ Resources:
           - sts:AssumeRole
       Path: "/"
       Policies:
+      - PolicyName: sqs
+        PolicyDocument:
+          Statement:
+          - Effect: Allow
+            Action:
+            - sqs:deleteMessage
+            Resource: !GetAtt AsgSqsQueue.Arn
       - PolicyName: logs
         PolicyDocument:
           Statement:
