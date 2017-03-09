@@ -2,8 +2,8 @@
 console.log('Loading function');
 const AWS = require('aws-sdk');
 const async = require('async');
-const sqs = new AWS.SQS()
-const lambda = new AWS.Lambda()
+const sqs = new AWS.SQS();
+const lambda = new AWS.Lambda();
 
 function receiveMessages(callback) {
   var params = {
@@ -33,7 +33,7 @@ function invokeWorkerLambda(task, callback) {
       callback(err);
     }
     else {
-      callback(null, data)
+      callback(null, data);
     }
   });
 }
@@ -44,7 +44,7 @@ function handleSQSMessages(context, callback) {
       var invocations = [];
       messages.forEach(function(message) {
         invocations.push(function(callback) {
-          invokeWorkerLambda(message, callback)
+          invokeWorkerLambda(message, callback);
         });
       });
       async.parallel(invocations, function(err) {
@@ -54,11 +54,11 @@ function handleSQSMessages(context, callback) {
         }
         else {
           if (context.getRemainingTimeInMillis() > 20000) {
-            handleSQSMessages(context, callback);	
+            handleSQSMessages(context, callback);
           }
           else {
             callback(null, 'PAUSE');
-          }					
+          }
         }
       });
     }
