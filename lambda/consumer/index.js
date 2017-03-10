@@ -1,3 +1,5 @@
+// Lifted from https://cloudonaut.io/integrate-sqs-and-lambda-serverless-architecture-for-asynchronous-workloads/
+
 'use strict';
 console.log('Loading function');
 const AWS = require('aws-sdk');
