@@ -1,8 +1,13 @@
 #!/usr/bin/env bash
 
-set -e
+set -eu
 
-ACTION=${1:-update}
+ACTION_RX="^(create|update|delete)$"
+ACTION=$1
+if ! [[ "${ACTION}" =~ ${ACTION_RX} ]]; then
+  echo "ARG1 must match ${ACTION_RX}"
+  exit 1
+fi
 
 ARGS="--template-body file://regservice.yaml --capabilities CAPABILITY_IAM"
 if [ "${ACTION}" == "delete" ]; then
