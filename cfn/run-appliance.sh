@@ -15,7 +15,8 @@ if [ "${ACTION}" != "delete" ]; then
     jq '.Stacks[0].Outputs[]|select(.OutputKey=="ClaimApiId").OutputValue' -r \
   )
   ARGS="--template-body file://appliance.yaml --capabilities CAPABILITY_IAM --parameters"
-  ARGS+=" ParameterKey=ServiceUrl,ParameterValue=https://${API_ID}.execute-api.eu-west-1.amazonaws.com/v1/claim"
+  ARGS+=" ParameterKey=ClaimBaseUrl,ParameterValue=https://${API_ID}.execute-api.eu-west-1.amazonaws.com"
+  ARGS+=" ParameterKey=ClaimUrl,ParameterValue=https://${API_ID}.execute-api.eu-west-1.amazonaws.com/v1/claim"
 fi
 
 aws cloudformation "${ACTION}-stack" --stack-name secapp ${ARGS}

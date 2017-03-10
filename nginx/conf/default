@@ -1,0 +1,23 @@
+
+server {
+  listen 80 default_server;
+  listen [::]:80 default_server;
+
+  root /var/www/html;
+
+  index index.html index.htm index.nginx-debian.html;
+
+  server_name _;
+
+  location /v1/claim {
+    proxy_ssl_server_name on;
+    resolver %%RESOLVER%% valid=30s;
+    set $backend_upstream "%%CLAIM_BASE_URL%%";
+    proxy_pass $backend_upstream;
+  }
+
+  location / {
+    try_files $uri $uri/ =404;
+  }
+
+}

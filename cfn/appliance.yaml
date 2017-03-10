@@ -24,9 +24,16 @@ Parameters:
     Description: Availability zone
     Type: String
     Default: eu-west-1a
-  ServiceUrl:
+  ClaimUrl:
     Description: Registration API URL
     Type: String
+  ClaimBaseUrl:
+    Description: Registration API URL minus path
+    Type: String
+  RegistrationKey:
+    Description: Appliance registration key
+    Type: String
+    Default: somethingverysecret
 
 Resources:
 
@@ -42,7 +49,7 @@ Resources:
   AsgSqsQueue:
     Type: AWS::SQS::Queue
     Properties:
-      DelaySeconds: 0
+      DelaySeconds: 90
 
   AsgSqsPolicy:
     Type: AWS::SQS::QueuePolicy
@@ -67,8 +74,9 @@ Resources:
     Properties:
       Environment:
         Variables:
-          CLAIM_URL: !Ref ServiceUrl
+          CLAIM_URL: !Ref ClaimUrl
           QUEUE_URL: !Ref AsgSqsQueue
+          TOP_SECRET_KEY: !Ref RegistrationKey
       Handler: index.handler
       MemorySize: 128
       Role: !GetAtt WorkerLambdaRole.Arn
@@ -171,6 +179,13 @@ Resources:
           - sts:AssumeRole
       Path: "/"
       Policies:
+      - PolicyName: ec2
+        PolicyDocument:
+          Statement:
+          - Effect: Allow
+            Action:
+            - ec2:DescribeInstances
+            Resource: "*"
       - PolicyName: sqs
         PolicyDocument:
           Statement:
@@ -207,8 +222,11 @@ Resources:
           apt-get -y install nginx git
           git -C /tmp clone https://github.com/btisdall/serverless-hh-2017-03-13.git
           cp /tmp/serverless-hh-2017-03-13/nginx/html/* /var/www/html/
-          sed -i "s!%%CLAIM_URL%%!${ServiceUrl}!" /var/www/html/index.html
+          cp /tmp/serverless-hh-2017-03-13/nginx/conf/default /etc/nginx/sites-available/
+          sed -i "s!%%RESOLVER%%!$(grep nameserver /etc/resolv.conf|awk '{print $2}')!" /etc/nginx/sites-available/default
+          sed -i "s!%%CLAIM_BASE_URL%%!${ClaimBaseUrl}!" /etc/nginx/sites-available/default
           sed -i "s!%%INSTANCE_ID%%!$(ec2metadata --instance-id)!" /var/www/html/index.html
+          service nginx reload
 
   AutoScalingGroup:
     Type: AWS::AutoScaling::AutoScalingGroup
@@ -246,7 +264,7 @@ Resources:
         IpProtocol: tcp
         FromPort: 22
         ToPort: 22
-      - CidrIp: 31.19.119.178/32
+      - CidrIp: 0.0.0.0/0
         IpProtocol: tcp
         FromPort: 80
         ToPort: 80
