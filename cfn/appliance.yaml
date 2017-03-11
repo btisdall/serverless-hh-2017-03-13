@@ -11,15 +11,15 @@ Parameters:
   VpcId:
     Description: VPC ID
     Type: String
-    Default: vpc-65a71b00
+    Default: vpc-48d72823
   IgwId:
     Description: Internet gw
     Type: String
-    Default: igw-05a27160
+    Default: igw-4cd72827
   KeyName:
     Description: SSH key
     Type: String
-    Default: bentis_sandbox
+    Default: bentis-aws-personal
   Az:
     Description: Availability zone
     Type: String
@@ -34,6 +34,10 @@ Parameters:
     Description: Appliance registration key
     Type: String
     Default: somethingverysecret
+  BucketName:
+    Description: S3 bucket used to store code, etc
+    Type: String
+    Default: bentis-dev-271871120138
 
 Resources:
 
@@ -83,7 +87,7 @@ Resources:
       Runtime: nodejs4.3
       Timeout: 10
       Code:
-        S3Bucket: photobox-bentis-deploy-test
+        S3Bucket: !Ref BucketName
         S3Key: lambda/worker.js.zip
 
   ConsumerLambda:
@@ -99,7 +103,7 @@ Resources:
       Runtime: nodejs4.3
       Timeout: 10
       Code:
-        S3Bucket: photobox-bentis-deploy-test
+        S3Bucket: !Ref BucketName
         S3Key: lambda/consumer.js.zip
 
 
@@ -164,7 +168,11 @@ Resources:
           - Effect: Allow
             Action:
             - s3:GetObject
-            Resource: arn:aws:s3:::photobox-bentis-deploy-test/*
+            Resource: !Join
+            - ""
+            - - "arn:aws:s3:::"
+              - !Ref BucketName
+              - "/*"
 
   WorkerLambdaRole:
     Type: AWS::IAM::Role
