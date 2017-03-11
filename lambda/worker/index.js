@@ -30,8 +30,9 @@ function makeClaim(event, callback) {
 
       request.post(
         'http://' + address + '/v1/claim', params, function(err, resp, body) {
-          if (err) {
+          if (err || resp.statusCode !== 200) {
             console.error(err);
+            console.log('code: %s', resp.statusCode);
           }
           else {
             console.log('code: %s', resp.statusCode);
