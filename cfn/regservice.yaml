@@ -231,15 +231,6 @@ Resources:
             type: object
       Description: Handles submitted contact form
       FailOnWarnings: true
-  StageApi:
-    Type: AWS::ApiGateway::Stage
-    Properties:
-      DeploymentId:
-        Ref: DeployApi
-      Description: RegSrv stage
-      RestApiId:
-        Ref: RestApi
-      StageName: prod
   DeployApi:
     Type: AWS::ApiGateway::Deployment
     Properties:
