@@ -246,7 +246,7 @@ Resources:
       Description: RegSrv Deployment
       RestApiId:
         Ref: RestApi
-      StageName: DummyStage
+      StageName: v1
 
 Outputs:
   ClaimApiId:
