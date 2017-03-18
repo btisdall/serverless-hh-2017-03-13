@@ -8,7 +8,7 @@ const ec2 = new AWS.EC2();
 
 
 function makeClaim(event, callback) {
-  var instanceId = JSON.parse(JSON.parse(event.Body).Message).EC2InstanceId;
+  let instanceId = JSON.parse(JSON.parse(event.Body).Message).EC2InstanceId;
   console.log('HANDLE: %s, INSTANCE_ID: %s', event.ReceiptHandle, instanceId);
 
   ec2.describeInstances({InstanceIds:[instanceId]}, function(err, data) {
@@ -16,11 +16,11 @@ function makeClaim(event, callback) {
       console.log(err, err.stack);
     }
     else {
-      var address = data.Reservations[0].Instances[0].PublicIpAddress;
-      var claimUrl = 'http://' + address + '/v1/claim';
+      let address = data.Reservations[0].Instances[0].PublicIpAddress;
+      let claimUrl = 'http://' + address + '/v1/claim';
       console.log('ADDRESS: %s', claimUrl);
 
-      var params = {
+      let params = {
         form: {
           key: process.env.TOP_SECRET_KEY,
           instance_id: instanceId,
