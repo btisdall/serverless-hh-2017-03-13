@@ -9,6 +9,10 @@
     hooks:
     -   id: forbid-tabs
 -   repo: git://github.com/pre-commit/mirrors-jshint
-    sha: 'master'
+    sha: master
     hooks:
     -   id: jshint
+-   repo: git@github.com:btisdall/pre-commit-hooks.git
+    sha: master
+    hooks:
+    -   id: cfn-validate
